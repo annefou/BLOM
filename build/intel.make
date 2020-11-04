@@ -1,9 +1,9 @@
 # Intel compiler definitions
 
 # Fortran compiler
-FC=mpiifort
+FC=mpifort
 # C compiler
-CC=mpiicc
+CC=mpicc
 # Linker
 LD=$(FC)
 # Archiver
@@ -11,17 +11,17 @@ AR=ar
 # Include directory for modules
 MODINC=
 # Linker flags
-LIBS=-lnetcdf -lnetcdff -lpnetcdf
+LIBS=-lnetcdf -lnetcdff 
 # External names
 EXTNAME=
 
 # Compiler flags
 # Optimization level
-OPT=-O2
+OPT=-O3 -xhost -fp-model fast=2 -no-prec-div -fimf-use-svml=true -mcmodel=medium
 OPENMP=
-DEBUG=-pg
+DEBUG=-g
 FFLAGS=-real-size 64 -mkl=cluster -fp-model source -qno-opt-dynamic-align -convert big_endian -assume byterecl -ftz $(OPT) $(OPENMP) $(DEBUG)
-CFLAGS=-fp-model precise $(OPENMP)
+CFLAGS=-fp-model precise $(OPENMP) -mcmodel=medium
 
 # Linker flags
 LDFLAGS=$(LIBS) $(OPENMP) $(DEBUG)

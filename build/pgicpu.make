@@ -17,7 +17,7 @@ EXTNAME=
 
 # Compiler flags
 # Optimization level
-OPT=-fast -acc -ta=tesla,managed,lineinfo -Minfo=accel #-O2 -acc -ta=tesla:managed -Minfo=all
+OPT=-fast #-acc -ta=tesla,managed,lineinfo -Minfo=accel #-O2 -acc -ta=tesla:managed -Minfo=all
 OPENMP=
 DEBUG=-g
 #FFLAGS=-r8 -Kieee -byteswapio -Mrecursive -mcmodel=medium -Mflushz $(OPT) $(OPENMP) $(DEBUG) -I$HOME/netCDF/include/

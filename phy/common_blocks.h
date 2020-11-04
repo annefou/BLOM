@@ -191,12 +191,14 @@ c
      .               taux,tauy,ustar,ustarb,idkedt,ustar3,buoyfl,
      .               mtkeus,mtkeni,mtkebf,mtkers,mtkepe,mtkeke,
      .               twedon,pbrnda,kfpla
+!!!!!!!!!!!!$acc declare device_resident(/blom4/)
 c
       real time,delt1,dlt,area,avgbot
       integer nstep,nstep0,nstep1,nstep2,lstep
 c
       common /varbls/ time,delt1,dlt,area,avgbot,
      .                nstep,nstep0,nstep1,nstep2,lstep
+!!!!!!!!!!!!!!!!!!!$acc declare device_resident(/varbls/)
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
@@ -295,6 +297,7 @@ c
      .                niwgf,niwbf,niwlf,bdmtyp,csdiag,cnsvdi,edsprs,
      .                expcnf,mommth,eitmth,edritp,bmcmth,rmpmth,edwmth,
      .                mlrttp,grfile,icfile,tdfile
+!!!!!!!!!!!!!!!$acc declare device_resident(/parms1/)
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
 c --- 'g'      = gravity acceleration
@@ -309,14 +312,17 @@ c
 c
       common /consts/ tenm,onem,tencm,onecm,onemm,g,rearth,spcifh,t0deg,
      .                alpha0,epsil,radian,pi
+!!!!!!!!!!!!!!!$acc declare device_resident(/consts/)
 c
 c --- grid point where detailed diagnostics are desired:
 c
       integer itest,jtest,ptest
 c
       common /testpt/ itest,jtest,ptest
+!!!!!!!!!!!!!!$acc declare device_resident(/testpt/)
 c
       character*256 runid
       integer runid_len
 c
       common /iovars/ runid,runid_len
+!!!!!!!!!!$acc declare device_resident(/iovars/)

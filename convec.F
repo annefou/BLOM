@@ -41,6 +41,14 @@ c
       real tdps,sdps,dps,ttmp,stmp,dtmp,q,udpn
       integer i,j,k,l,kn,kfpl,kfplo,kmix,ko
       logical done
+      real, dimension(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,2*kdm) ::
+     . saln_gpu,sigma_gpu,dp_gpu,u_gpu,v_gpu,dpv_gpu,dpu_gpu,temp_gpu
+      real, dimension(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,kdm+1) :: 
+     . p_gpu,pv_gpu,pu_gpu
+       integer, dimension(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,2) ::
+     .  kfpla_gpu
+        real, dimension(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,kdm) ::
+     .  sigmar_gpu
 c
 #ifdef TRC
 #  include "param_trc.h"
@@ -48,6 +56,8 @@ c
       real, dimension(ntr,kdm) :: ttrc
       real, dimension(ntr) :: trdps
       integer nt
+      real, dimension(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,2*kdm,ntr) :: 
+     .     trc_gpu
 #endif
 c
       real sofsig,sig,rho
@@ -56,19 +66,31 @@ c
 c
       integer niter
 c
-        print*, 'I enter in CONVEC',JJ
+      trc_gpu(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,2*kdm,ntr) =
+     . trc(1-nbdy:idm+nbdy,1-nbdy:jdm+nbdy,2*kdm,ntr)
+        print*, 'I enter in CONVEC'
+      kfpla_gpu=kfpla
+      temp_gpu=temp
+      p_gpu=p
+      sigmar_gpu=sigmar
+      saln_gpu=saln
+      sigma_gpu=sigma
+      dp_gpu=dp
+      pv_gpu=pv
+      u_gpu=u
+      v_gpu=v
+      pu_gpu=pu
+      dpv_gpu=dpv
+      dpu_gpu=dpu
 
-!$acc data copy(isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv)
-!$acc& copy(kfpla,temp,p,sigmar)
-!$acc& copy(saln,sigma,dp,pv,u)
-!$acc& copy(v,pu)
-!$acc& copy(dpv,dpu,trc) create(ttrc,trdps)
+!$acc data copyin(isp,ifp,ilp,isu,ifu,ilu,isv,ifv,ilv)
+!$acc& copy(kfpla_gpu,temp_gpu,p_gpu,sigmar_gpu)
+!$acc& copy(saln_gpu,sigma_gpu,dp_gpu,pv_gpu,u_gpu)
+!$acc& copy(v_gpu,pu_gpu)
+!$acc& copy(dpv_gpu,dpu_gpu,trc_gpu) create(ttrc,trdps)
 !$acc& create(ttem,ssal,delp,dens,densr,uo,un,po,pn)
-      print*, 'I enter in CONVEC1',JJ
-!$acc parallel loop private(l,i,k,kn,ttem,ssal,delp,dens,densr,dps
-!$acc& ,kfpl,kfplo,tdps,sdps,q,ttmp,stmp,dtmp,done,niter,kmix,
-!$acc& nt,ttrc,trdps)
-
+      print*, 'I enter in CONVEC1'
+!$acc parallel loop
 c$OMP PARALLEL DO PRIVATE(
 c$OMP+ l,i,k,kn,ttem,ssal,delp,dens,densr,dps,kfpl,kfplo,tdps,sdps,q,
 c$OMP+ ttmp,stmp,dtmp,done,niter,kmix
@@ -84,14 +106,14 @@ c
 c --- --- Copy variables into 1d arrays
           do k=1,kk
             kn=k+nn
-            ttem(k)=temp(i,j,kn)
-            ssal(k)=saln(i,j,kn)
-            delp(k)=dp(i,j,kn)
-            dens(k)=sigma(i,j,kn)
-            densr(k)=sigmar(i,j,k)
+            ttem(k)=temp_gpu(i,j,kn)
+            ssal(k)=saln_gpu(i,j,kn)
+            delp(k)=dp_gpu(i,j,kn)
+            dens(k)=sigma_gpu(i,j,kn)
+            densr(k)=sigmar_gpu(i,j,k)
 #ifdef TRC
             do nt=1,ntr
-              ttrc(nt,k)=trc(i,j,kn,nt)
+              ttrc(nt,k)=trc_gpu(i,j,kn,nt)
             enddo
 #endif
           enddo
@@ -114,7 +136,7 @@ c
             delp(k)=delp(k)+dps
           endif
           kfpl=k
-          kfplo=kfpla(i,j,n)
+          kfplo=kfpla_gpu(i,j,n)
           if (kfpl.lt.kfplo) then
             if (kfplo.le.kk) then
               tdps=0.
@@ -286,19 +308,19 @@ c
 c
           endif
 c
-          kfpla(i,j,n)=kfpl
+          kfpla_gpu(i,j,n)=kfpl
 c
 c --- --- Copy 1d arrays to 3d arrays
           do k=1,kk
             kn=k+nn
-            temp(i,j,kn)=ttem(k)
-            saln(i,j,kn)=ssal(k)
-            sigma(i,j,kn)=dens(k)
-            dp(i,j,kn)=delp(k)
-            p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
+            temp_gpu(i,j,kn)=ttem(k)
+            saln_gpu(i,j,kn)=ssal(k)
+            sigma_gpu(i,j,kn)=dens(k)
+            dp_gpu(i,j,kn)=delp(k)
+            p_gpu(i,j,k+1)=p_gpu(i,j,k)+dp_gpu(i,j,kn)
 #ifdef TRC
             do nt=1,ntr
-              trc(i,j,kn,nt)=ttrc(nt,k)
+              trc_gpu(i,j,kn,nt)=ttrc(nt,k)
             enddo
 #endif
           enddo
@@ -308,19 +330,16 @@ c
       enddo
 c$OMP END PARALLEL DO
 !$acc end parallel loop
-cccccc!$acc exit data delete(ttem,ssal,delp,dens,densr,uo,un,po,pn) 
-!!!!!!$acc end data
+!$acc end data
        print*, 'I leave in CONVEC first loop block'
 c
 c --- ------------------------------------------------------------------
 c --- Redistribute momentum
 c --- ------------------------------------------------------------------
 c
-!$acc update host(p)
-      call xctilr(p, 1,kk+1, 1,1, halo_ps)
-!$acc update device(p)
+c      call xctilr(p, 1,kk+1, 1,1, halo_ps)
 c
-!$acc loop private(l,i,k,kn,uo,po,pn,ko,un,udpn)
+!!!!!!!$acc parallel loop
 c$OMP PARALLEL DO PRIVATE(l,i,k,kn,uo,po,pn,ko,un,udpn)
       do j=1,jj
 c
@@ -328,14 +347,14 @@ c
         do i=max(1,ifu(j,l)),min(ii,ilu(j,l))
           do k=1,kk
             kn=k+nn
-            uo(k)=u(i,j,kn)
+            uo(k)=u_gpu(i,j,kn)
           enddo
           po(1)=0.
           pn(1)=0.
           do k=2,kk+1
-            po(k)=pu(i,j,k)
-            pn(k)=.5*(min(pu(i,j,kk+1),p(i  ,j,k))
-     .               +min(pu(i,j,kk+1),p(i-1,j,k)))
+            po(k)=pu_gpu(i,j,k)
+            pn(k)=.5*(min(pu_gpu(i,j,kk+1),p_gpu(i  ,j,k))
+     .               +min(pu_gpu(i,j,kk+1),p_gpu(i-1,j,k)))
           enddo
 c
           ko=1
@@ -354,7 +373,7 @@ c
           enddo
           do k=1,kk
             kn=k+nn
-            u(i,j,kn)=un(k)
+            u_gpu(i,j,kn)=un(k)
           enddo
 c
         enddo
@@ -364,14 +383,14 @@ c
         do i=max(1,ifv(j,l)),min(ii,ilv(j,l))
           do k=1,kk
             kn=k+nn
-            uo(k)=v(i,j,kn)
+            uo(k)=v_gpu(i,j,kn)
           enddo
           po(1)=0.
           pn(1)=0.
           do k=2,kk+1
-            po(k)=pv(i,j,k)
-            pn(k)=.5*(min(pv(i,j,kk+1),p(i,j  ,k))
-     .               +min(pv(i,j,kk+1),p(i,j-1,k)))
+            po(k)=pv_gpu(i,j,k)
+            pn(k)=.5*(min(pv_gpu(i,j,kk+1),p_gpu(i,j  ,k))
+     .               +min(pv_gpu(i,j,kk+1),p_gpu(i,j-1,k)))
           enddo
 c
           ko=1
@@ -390,42 +409,42 @@ c
           enddo
           do k=1,kk
             kn=k+nn
-            v(i,j,kn)=un(k)
+            v_gpu(i,j,kn)=un(k)
           enddo
 c
         enddo
         enddo
       enddo
 c$OMP END PARALLEL DO
-!$acc end loop
+!!!!!!!!!$acc end parallel loop
       print*, 'I leave in CONVEC2'
 c
-!$acc parallel loop private(k,kn,l,i,q)
+!!!!!!$acc parallel loop
 c$OMP PARALLEL DO PRIVATE(k,kn,l,i,q)
       do j=1,jj
         do k=1,kk
           kn=k+nn
           do l=1,isu(j)
           do i=max(1,ifu(j,l)),min(ii,ilu(j,l))
-            q=min(p(i,j,kk+1),p(i-1,j,kk+1))
-            dpu(i,j,kn)=
-     .        .5*((min(q,p(i-1,j,k+1))-min(q,p(i-1,j,k)))
-     .           +(min(q,p(i  ,j,k+1))-min(q,p(i  ,j,k))))
+            q=min(p_gpu(i,j,kk+1),p_gpu(i-1,j,kk+1))
+            dpu_gpu(i,j,kn)=
+     .        .5*((min(q,p_gpu(i-1,j,k+1))-min(q,p_gpu(i-1,j,k)))
+     .           +(min(q,p_gpu(i  ,j,k+1))-min(q,p_gpu(i  ,j,k))))
           enddo
           enddo
           do l=1,isv(j)
           do i=max(1,ifv(j,l)),min(ii,ilv(j,l))
-            q=min(p(i,j,kk+1),p(i,j-1,kk+1))
-            dpv(i,j,kn)=
-     .        .5*((min(q,p(i,j-1,k+1))-min(q,p(i,j-1,k)))
-     .           +(min(q,p(i,j  ,k+1))-min(q,p(i,j  ,k))))
+            q=min(p_gpu(i,j,kk+1),p_gpu(i,j-1,kk+1))
+            dpv_gpu(i,j,kn)=
+     .        .5*((min(q,p_gpu(i,j-1,k+1))-min(q,p_gpu(i,j-1,k)))
+     .           +(min(q,p_gpu(i,j  ,k+1))-min(q,p_gpu(i,j  ,k))))
           enddo
           enddo
         enddo
       enddo
 c$OMP END PARALLEL DO
-!$acc end parallel loop
-!$acc end data
+!!!!!$acc end parallel loop
+!!!!!$acc end data
 c     do j=1,jj
 c       do l=1,isu(j)
 c       do i=max(1,ifu(j,l)),min(ii,ilu(j,l))
@@ -466,8 +485,24 @@ c
         call chksummsk(v,iv,2*kk,'v')
 #ifdef TRC
         do nt=1,ntr
-          call chksummsk(trc(1-nbdy,1-nbdy,1,nt),ip,2*kk,'trc')
+          call chksummsk(trc_gpu(1-nbdy,1-nbdy,1,nt),ip,2*kk,'trc')
         enddo
 #endif
       endif
+c
+      trc=trc_gpu
+      kfpla=kfpla_gpu
+      temp=temp_gpu
+      p=p_gpu
+      sigmar=sigmar_gpu
+      saln=saln_gpu
+      sigma=sigma_gpu
+      dp=dp_gpu
+      pv=pv_gpu
+      u=u_gpu
+      v=v_gpu
+      pu=pu_gpu
+      dpv=dpv_gpu
+      dpu=dpu_gpu
+      return
       end

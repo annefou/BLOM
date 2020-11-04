@@ -61,7 +61,6 @@ c
 !$acc& copy(ilq,difmxp,dpvor,jlv,jfv,iv,defor1,jsv,scux,vflux3)
 !$acc& copy(uflux3,pgfx,scuxi,p,jlu,jfu,difwgt,scqx,pgfyo,jsu)
 !$acc& copy(ustarb,scvyi,scu2,absvor)
-!$acc& create(cutoff,thkbop,tsfac,dt1inv)
       cutoff=onem
       thkbop=thkbot*onem
       tsfac=dlt/delt1
@@ -73,10 +72,7 @@ c
         vh_min=0.
         vh_max=0.
       endif
-!$acc update device(cutoff,thkbop,tsfac,dt1inv
-!$acc& ,uh_min,uh_max,vh_min,vh_max)
 c
-!$acc parallel loop private(k,km,l,i,j)
 c$OMP PARALLEL DO PRIVATE(k,km,l,i)
       do j=-1,jj+2
         do k=1,kk
@@ -89,12 +85,11 @@ c$OMP PARALLEL DO PRIVATE(k,km,l,i)
         enddo
       enddo
 c$OMP END PARALLEL DO
-!$acc end parallel loop
 c
 c --- bottom drag (standard bulk formula)
 c
 c$OMP PARALLEL DO PRIVATE(l,i,k,kn,pbotl,ptopl,ubot,vbot,ubbl,q) 
-!$acc parallel loop private(j,l,i,k,kn,pbotl,ptopl,ubot,vbot,ubbl,q)
+!$acc parallel loop private(l,i,k,kn,pbotl,ptopl,ubot,vbot,ubbl,q)
       do j=0,jj
         do l=1,isp(j)
 c
@@ -168,7 +163,7 @@ c$OMP END PARALLEL DO
 c
       do k=1,kk
         km=k+mm
-!$acc parallel loop private(i,j,l) firstprivate(k,km)
+!$acc parallel loop private(i,j,l)
 c$OMP PARALLEL DO PRIVATE(l,i)
         do j=-1,jj+2
           do l=1,isu(j)
@@ -187,7 +182,6 @@ c$OMP END PARALLEL DO
       enddo
 c
       call xctilr(difwgt,  1,1, 2,2, halo_ps)
-!$acc update device(difwgt)
 c
 c$OMP PARALLEL DO PRIVATE(
 c$OMP+ km,kn,j,i,l,dpmx,wgtja,wgtjb,wgtia,wgtib,vort,potvor,defor1,
@@ -1054,7 +1048,7 @@ c
         km=k+mm
         kn=k+nn
 c
-!$acc parallel loop private(i,j,l) firstprivate(k,km,kn)
+!$acc parallel loop private(i,j,l)
 c$OMP PARALLEL DO PRIVATE(l,i)
         do j=1,jj
           do l=1,isu(j)
